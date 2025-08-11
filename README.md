@@ -67,4 +67,3 @@ streamlit run app.py
 - The app will automatically detect the CAPTCHA type and solve it instantly.
 - View the uploaded images side-by-side with their solutions in a clean, easy-to-read table.
 - Explore different CAPTCHA types: Text, Math, and Object recognition.
-```
