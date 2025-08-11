@@ -2,12 +2,14 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 
-load_dotenv() 
+load_dotenv()
 api_key = os.getenv("API_KEY")
 
-# Store your Gemini API key here
+genai.api_key = api_key
+genai.configure()
 
-genai.configure(api_key)
+# rest of your functions unchanged
+
 
 def gemini_solve_math(expression):
     """
