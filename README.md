@@ -30,6 +30,7 @@ A powerful and versatile **CAPTCHA solving application** built with Streamlit, d
 ```bash
 git clone https://github.com/Hrishikesh-Prasad-R/captcha-solver-analyzer.git
 cd captcha-solver-analyzer
+```
 
 2. **Create and activate a virtual environment:**
 
@@ -45,11 +46,13 @@ venv\Scripts\activate.bat
 # On macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
+```
 
 3. **Install dependencies:**
 
 ```bash
 pip install -r requirements.txt
+```
 
 4. **Run the Streamlit app:**
 
@@ -63,3 +66,4 @@ streamlit run app.py
 - The app will automatically detect the CAPTCHA type and solve it instantly.
 - View the uploaded images side-by-side with their solutions in a clean, easy-to-read table.
 - Explore different CAPTCHA types: Text, Math, and Object recognition.
+```
