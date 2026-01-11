@@ -237,7 +237,7 @@ def get_solver_for_type(ctype: str):
         return detect_objects
 
 
-def solve_and_get_data(image_path: str, image: Image.Image, use_fallback: bool, captcha_type: str, enable_jitter: bool) -> Dict[str, Any]:
+def solve_and_get_data(image_path: str, image: Image.Image, use_fallback: bool, captcha_type: str, enable_jitter: bool, target_filter: str = "") -> Dict[str, Any]:
     start_time = time.time()
     solver = get_solver_for_type(captcha_type)
     
@@ -262,7 +262,22 @@ def solve_and_get_data(image_path: str, image: Image.Image, use_fallback: bool, 
         font = ImageFont.load_default()
         label_colors: Dict[str, tuple] = {}
         
-        for obj in objects:
+        # Filter objects if target_filter is provided
+        if target_filter:
+            filtered_objects = [
+                obj for obj in objects 
+                if target_filter in obj.get("name", "").lower()
+            ]
+            result["filter_applied"] = target_filter
+            result["filter_match_count"] = len(filtered_objects)
+            result["all_objects"] = objects  # Keep original for debug
+            objects_to_draw = filtered_objects
+        else:
+            result["filter_applied"] = None
+            objects_to_draw = objects
+        
+        # Draw bounding boxes for filtered objects only
+        for obj in objects_to_draw:
             name = obj.get("name", "Unknown")
             bbox = obj.get("bbox")
             color = get_color_for_label(name, label_colors)
@@ -273,6 +288,7 @@ def solve_and_get_data(image_path: str, image: Image.Image, use_fallback: bool, 
                 draw.text((x1, max(0, y1 - 14)), name, fill=color, font=font)
         
         result["annotated_image"] = annotated_image
+        result["displayed_objects"] = objects_to_draw
     else:
         result["annotated_image"] = image
     
@@ -284,7 +300,6 @@ def solve_and_get_data(image_path: str, image: Image.Image, use_fallback: bool, 
 st.markdown("""
 <div class="main-header">
     <h1>🔓 CAPTCHA Solver</h1>
-    <p>Industrial-grade solving with confidence classification</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -311,8 +326,42 @@ with st.sidebar:
         help=f"Run {StateThresholds.JITTER_RUNS}x for consistency check"
     )
     
+    # Target object filter (only for Object CAPTCHA)
+    target_object_filter = ""
+    if captcha_type_selection == "Object CAPTCHA":
+        st.divider()
+        target_object_filter = st.text_input(
+            "🎯 Target Object",
+            placeholder="e.g., car, person, dog",
+            help="Leave empty to show all objects, or type an object name to filter"
+        ).strip().lower()
+    
     st.divider()
-    st.caption("Deterministic • Type-Safe • Industrial Grade")
+    
+    # Sample Images Section
+    st.subheader("📁 Sample Images")
+    
+    # Map CAPTCHA type to sample folder
+    sample_folder_map = {
+        "Text CAPTCHA": "text_captcha",
+        "Math CAPTCHA": "math_captcha",
+        "Object CAPTCHA": "object_captcha",
+    }
+    sample_folder = os.path.join("samples", sample_folder_map[captcha_type_selection])
+    
+    # Get available samples
+    sample_files = []
+    if os.path.exists(sample_folder):
+        sample_files = sorted([f for f in os.listdir(sample_folder) if f.endswith(('.png', '.jpg', '.jpeg'))])
+    
+    selected_sample = st.selectbox(
+        "Use a sample image",
+        options=["None (upload your own)"] + sample_files,
+        help="Select a sample image to test without uploading"
+    )
+    
+    st.divider()
+    st.caption("Deterministic • Type-Safe")
 
 # --- File Uploader ---
 uploaded_files = st.file_uploader(
@@ -322,21 +371,50 @@ uploaded_files = st.file_uploader(
     help="Upload one or more CAPTCHA images to solve"
 )
 
-# --- Process Results ---
+# --- Build list of images to process ---
+images_to_process = []
+
+# Priority 1: Uploaded files
 if uploaded_files:
-    for idx, uploaded_file in enumerate(uploaded_files):
-        image = Image.open(uploaded_file)
+    for uploaded_file in uploaded_files:
+        images_to_process.append({
+            "source": "upload",
+            "name": uploaded_file.name,
+            "image": Image.open(uploaded_file)
+        })
+# Priority 2: Selected sample (if no uploads)
+elif selected_sample != "None (upload your own)":
+    sample_path = os.path.join(sample_folder, selected_sample)
+    if os.path.exists(sample_path):
+        images_to_process.append({
+            "source": "sample",
+            "name": f"📁 {selected_sample}",
+            "image": Image.open(sample_path),
+            "path": sample_path  # Can use directly, no temp file needed
+        })
+
+# --- Process Results ---
+if images_to_process:
+    for idx, img_data in enumerate(images_to_process):
+        image = img_data["image"]
+        image_name = img_data["name"]
         
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-            image.save(tmp.name)
-            image_path = tmp.name
+        # For sample images, use existing path; for uploads, create temp file
+        if img_data["source"] == "sample":
+            image_path = img_data["path"]
+            needs_cleanup = False
+        else:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                image.save(tmp.name)
+                image_path = tmp.name
+                needs_cleanup = True
 
         try:
             # Determine CAPTCHA type (now always manual selection)
             captcha_type = captcha_type_selection
             
             with st.spinner(f"🔍 Solving {captcha_type}..."):
-                result = solve_and_get_data(image_path, image, use_ai_fallback, captcha_type, enable_jitter_check)
+                result = solve_and_get_data(image_path, image, use_ai_fallback, captcha_type, enable_jitter_check, target_object_filter)
             
             # Add result metadata
             result["captcha_type"] = captcha_type
@@ -349,7 +427,7 @@ if uploaded_files:
             
             with col1:
                 st.image(result.get("annotated_image", image), use_container_width=True)
-                st.markdown(f'<span class="file-badge">📁 {uploaded_file.name}</span>', unsafe_allow_html=True)
+                st.markdown(f'<span class="file-badge">{image_name}</span>', unsafe_allow_html=True)
             
             with col2:
                 # State Badge
@@ -382,9 +460,16 @@ if uploaded_files:
                     st.markdown(f'<div class="answer-box">{expr} = {answer}</div>', unsafe_allow_html=True)
                     
                 else:  # Object CAPTCHA
-                    objects = result.get("objects", [])
-                    obj_names = [o.get("name", "?") for o in objects[:5]]
-                    st.markdown(f'<div class="answer-box">{", ".join(obj_names) or "No objects"}</div>', unsafe_allow_html=True)
+                    # Use displayed_objects if filter was applied, otherwise use all objects
+                    displayed_objs = result.get("displayed_objects", result.get("objects", []))
+                    filter_applied = result.get("filter_applied")
+                    
+                    if filter_applied and len(displayed_objs) == 0:
+                        # Filter was applied but no matches found
+                        st.markdown(f'<div class="answer-box" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">🚫 Object not found: "{filter_applied}"</div>', unsafe_allow_html=True)
+                    else:
+                        obj_names = [o.get("name", "?") for o in displayed_objs[:5]]
+                        st.markdown(f'<div class="answer-box">{", ".join(obj_names) or "No objects"}</div>', unsafe_allow_html=True)
                 
                 # Metrics Row
                 m1, m2, m3 = st.columns(3)
@@ -446,10 +531,11 @@ if uploaded_files:
                 st.json(debug_data)
         
         finally:
-            try:
-                os.unlink(image_path)
-            except:
-                pass
+            if needs_cleanup:
+                try:
+                    os.unlink(image_path)
+                except:
+                    pass
 
 else:
     # Empty State
