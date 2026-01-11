@@ -1,2 +1,21 @@
-captcha_solver/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
 .env
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDEs
+.vscode/
+.idea/
+
+# Custom
+samples.zip
+*.log
