@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFont
 # Initialize determinism FIRST
 from utils.determinism import set_seed, get_deterministic_hash
 from utils.jitter import calculate_jitter
-from config import settings
+from app_config import settings
 from models.confidence_state import ConfidenceState, StateThresholds
 
 # Set global seed

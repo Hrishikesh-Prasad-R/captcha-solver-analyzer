@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any
 
 import google.generativeai as genai
 
-from config import settings
+from app_config import settings
 
 # Configure module logger
 logger = logging.getLogger(__name__)

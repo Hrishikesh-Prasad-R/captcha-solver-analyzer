@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any
 
 import cv2
 
-from config import settings
+from app_config import settings
 from models.confidence_state import ConfidenceState, classify_state
 from .gemini import gemini_solve_math
 from .ocr_reader import reader

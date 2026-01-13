@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import settings, AppSettings
+from app_config import settings, AppSettings
 from utils.determinism import set_seed
 from models.captcha_result import (
     TextCaptchaResult,
@@ -34,7 +34,7 @@ class TestConfig:
 
     def test_model_path_function(self):
         """Test get_model_path returns a string."""
-        from config import get_model_path
+        from app_config import get_model_path
         path = get_model_path()
         assert isinstance(path, str)
         assert "yolov8" in path.lower()

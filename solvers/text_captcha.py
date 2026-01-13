@@ -10,7 +10,7 @@ from typing import Optional, Tuple, Dict, Any
 
 import cv2
 
-from config import settings
+from app_config import settings
 from models.confidence_state import (
     ConfidenceState,
     StateClassification,

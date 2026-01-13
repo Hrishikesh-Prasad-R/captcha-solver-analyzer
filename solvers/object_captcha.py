@@ -10,7 +10,7 @@ from typing import Optional
 
 from ultralytics import YOLO
 
-from config import settings, get_model_path
+from app_config import settings, get_model_path
 from models.captcha_result import (
     ObjectCaptchaResult,
     DetectedObject,
